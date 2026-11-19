@@ -25,7 +25,7 @@ export default function PatientsPage() {
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
-  const [ehrSource, setEhrSource] = useState("epic");
+  const [ehrSource, setEhrSource] = useState("hapi");
 
   async function load(search = q) {
     setLoading(true);
@@ -44,22 +44,28 @@ export default function PatientsPage() {
   }
 
   async function syncEhr() {
+    const isLiveHapi = ehrSource === "hapi";
     setMsg(
-      `Syncing Mock ${ehrSource.toUpperCase()} → PostgreSQL (patients, encounters, insurance)…`,
+      isLiveHapi
+        ? `Syncing LIVE HAPI FHIR (https://hapi.fhir.org/baseR4) → PostgreSQL (patients, encounters, insurance)…`
+        : `Syncing Mock ${ehrSource.toUpperCase()} → PostgreSQL (patients, encounters, insurance)…`,
     );
     const res = await fetch(
-      `${API_BASE}/ehr/${ehrSource}/sync/all?mock_only=true`,
+      `${API_BASE}/ehr/${ehrSource}/sync/all?mock_only=${!isLiveHapi}`,
       { method: "POST" },
     );
     const data = await res.json();
     setMsg(
-      `${data.disclaimer ?? "MOCK EHR"} · patients ${JSON.stringify(data.patients)} · Availity maps ${JSON.stringify(data.availity_mappings)}`,
+      isLiveHapi
+        ? `✅ Live HAPI FHIR Sync Complete: ${data.patients?.created ?? 0} created, ${data.patients?.updated ?? 0} updated in PostgreSQL.`
+        : `${data.disclaimer ?? "MOCK EHR"} · patients ${JSON.stringify(data.patients)} · Availity maps ${JSON.stringify(data.availity_mappings)}`,
     );
     await load();
   }
 
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -69,18 +75,19 @@ export default function PatientsPage() {
           <div>
             <h2 className="text-2xl font-semibold">Patients</h2>
             <p className="mt-1 text-sm text-slate-600">
-              People in the clinic chart — start with Ava Chen in the walkthrough.
+              EHR patient roster synced to PostgreSQL. Includes live public HAPI FHIR test patients and simulated Epic/Oracle charts.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={ehrSource}
               onChange={(e) => setEhrSource(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
             >
+              <option value="hapi">HAPI FHIR (Live API: hapi.fhir.org)</option>
               <option value="epic">Mock Epic</option>
               <option value="oracle">Mock Oracle Health</option>
-              <option value="mock">Mock FHIR</option>
+              <option value="mock">Mock FHIR (Generic)</option>
             </select>
             <button
               onClick={() => void syncEhr()}
@@ -90,8 +97,8 @@ export default function PatientsPage() {
             </button>
           </div>
         </header>
-        <p className="text-xs font-medium text-amber-900">
-          Simulated EHR only — not live Epic or Oracle Health credentials.
+        <p className="text-xs font-medium text-teal-800 bg-teal-50 border border-teal-200 rounded px-3 py-1.5">
+          🌐 <b>Live HAPI FHIR Integration Active:</b> Connects directly to <code>https://hapi.fhir.org/baseR4</code> for Patient, Encounter, and Coverage resources.
         </p>
         <ModuleGuide {...GUIDES.patients} />
 

@@ -13,8 +13,14 @@ def map_patient(resource: dict[str, Any], source: str = "HAPI_FHIR_OR_MOCK") -> 
     phone = next((t.get("value") for t in telecom if t.get("system") == "phone"), None)
     email = next((t.get("value") for t in telecom if t.get("system") == "email"), None)
     addr = (resource.get("address") or [{}])[0]
-    # Prefer meta.source / extension when adapters tag MOCK_EPIC / MOCK_ORACLE
+    # Prefer meta.source when adapters tag MOCK_EPIC / MOCK_ORACLE
     meta_source = (resource.get("meta") or {}).get("source")
+    effective_source = source
+    if meta_source and any(k in meta_source.upper() for k in ("EPIC", "ORACLE", "MOCK")):
+        effective_source = meta_source
+    elif source in ("HAPI_OR_MOCK", "mock"):
+        effective_source = "HAPI_FHIR"
+
     return {
         "external_ehr_patient_id": resource.get("id"),
         "first_name": given[0] if given else "Unknown",
@@ -28,7 +34,7 @@ def map_patient(resource: dict[str, Any], source: str = "HAPI_FHIR_OR_MOCK") -> 
         "state": addr.get("state"),
         "postal_code": addr.get("postalCode"),
         "raw_fhir_resource": resource,
-        "source": meta_source or source,
+        "source": effective_source,
     }
 
 

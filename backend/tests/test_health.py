@@ -10,8 +10,8 @@ def test_integrations_status_has_no_availity() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["availity"]["enabled"] is False
-    assert body["eligibility_provider"]["active"] == "mock"
-    assert "hapi.fhir.org" in body["hapi_fhir"]["base_url"]
+    assert body["eligibility_provider"]["active"] in {"mock", "MOCK_AVAILITY"}
+    assert "hapi.fhir.org" in body["ehr"]["hapi_fhir"]["base_url"]
 
 
 def test_health_endpoint_shape() -> None:

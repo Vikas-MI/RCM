@@ -47,6 +47,27 @@ MOCK_AVAILITY_PAYERS: list[dict[str, Any]] = [
         "supported_transactions": ["270", "271"],
         "active": True,
     },
+    {
+        "availity_payer_id": "AVAIL-BCBS-001",
+        "payer_name": "Blue Cross Blue Shield",
+        "internal_payer_code": "PAYER_BCBS",
+        "supported_transactions": ["270", "271", "837P", "835"],
+        "active": True,
+    },
+    {
+        "availity_payer_id": "AVAIL-UHC-001",
+        "payer_name": "UnitedHealthcare",
+        "internal_payer_code": "PAYER_UHC",
+        "supported_transactions": ["270", "271"],
+        "active": True,
+    },
+    {
+        "availity_payer_id": "AVAIL-MERCYCARE-001",
+        "payer_name": "MercyCare Health Plan",
+        "internal_payer_code": "Organization-14404",
+        "supported_transactions": ["270", "271"],
+        "active": True,
+    },
 ]
 
 
@@ -80,8 +101,14 @@ class MockAvailityProvider(EligibilityProvider):
 
 
 def _lookup_availity_id(payer_code_or_id: str) -> str | None:
+    norm = payer_code_or_id.lower().strip()
     for p in MOCK_AVAILITY_PAYERS:
-        if p["internal_payer_code"] == payer_code_or_id or p["availity_payer_id"] == payer_code_or_id:
+        if (
+            p["internal_payer_code"].lower() == norm
+            or p["availity_payer_id"].lower() == norm
+            or p["payer_name"].lower() in norm
+            or norm in p["payer_name"].lower()
+        ):
             return p["availity_payer_id"]
     return None
 

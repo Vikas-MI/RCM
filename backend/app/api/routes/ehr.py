@@ -19,6 +19,12 @@ def list_sources():
     return {
         "sources": [
             {
+                "id": "hapi",
+                "label": "HAPI FHIR (Live API: hapi.fhir.org)",
+                "live": True,
+                "note": "Live public HL7 FHIR R4 server at https://hapi.fhir.org/baseR4",
+            },
+            {
                 "id": "epic",
                 "label": "Mock Epic",
                 "live": False,
@@ -35,12 +41,6 @@ def list_sources():
                 "label": "Mock FHIR (generic)",
                 "live": False,
                 "note": "Built-in synthetic bundles",
-            },
-            {
-                "id": "hapi",
-                "label": "HAPI FHIR (public / mock fallback)",
-                "live": False,
-                "note": "Public test server optional; defaults to mock offline",
             },
         ],
         "disclaimer": _DISCLAIMER,
@@ -72,14 +72,15 @@ def coverage(source: str):
 @router.post("/{source}/sync/all")
 def sync_all(
     source: str,
-    mock_only: bool = Query(True),
+    mock_only: bool | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Pull patient + encounter + insurance from mock EHR into PostgreSQL."""
+    """Pull patient + encounter + insurance from EHR (HAPI / Epic / Oracle) into PostgreSQL."""
     if source not in VALID_SOURCES:
         return {"error": f"Unknown source. Use {VALID_SOURCES}", "disclaimer": _DISCLAIMER}
+    is_mock = False if (source == "hapi" and mock_only is not True) else (mock_only if mock_only is not None else True)
     # Also ensure Availity payer ID mappings exist after coverage sync
-    result = sync_service.sync_all(db, use_mock_only=mock_only, ehr_source=source)
+    result = sync_service.sync_all(db, use_mock_only=is_mock, ehr_source=source)
     result["availity_mappings"] = sync_service.ensure_availity_payer_mappings(db)
     result["disclaimer"] = _DISCLAIMER
     return result
